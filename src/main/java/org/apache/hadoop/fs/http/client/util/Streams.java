@@ -22,7 +22,20 @@ import java.io.OutputStream;
 
 public class Streams {
 	
-	public static final int	TWELVEK	= 12288;
+	public static final int EIGHT_K		= 8192;
+	public static final int	TWELVE_K	= 12288;
+	
+	/**
+	 * Reads the contents of {@code is} fully
+	 * 
+	 * @param is
+	 * 			the {@link InputStream}
+	 * @return the textual contents of {@code is}
+	 * @throws IOException
+	 */
+	public static String toString(InputStream is) throws IOException {
+		return toStringBuilder(is).toString();
+	}
 	
 	/**
 	 * Reads the contents of {@code is} fully
@@ -64,10 +77,10 @@ public class Streams {
 	public static long copy(InputStream instream, OutputStream outstream) throws IOException {
 		int n = 0;
 		long count = 0L;
-		byte[] buffer = new byte[TWELVEK]; // 8K=8192 12K=12288 64K=
+		byte[] buffer = new byte[TWELVE_K];
 		
 		try {
-			while (-1 != (n = instream.read(buffer))) {
+			while(-1 != (n = instream.read(buffer))) {
 				outstream.write(buffer, 0, n);
 				count += n;
 				outstream.flush();

@@ -57,7 +57,7 @@ import org.slf4j.LoggerFactory;
  * It falls back to the {@link PseudoAuthenticator} if the HTTP endpoint does
  * not trigger an SPNEGO authentication sequence.
  */
-public class KerberosAuthenticator2 implements Authenticator {
+class KerberosAuthenticator2 implements Authenticator {
 
 	/**
 	 * HTTP header used by the SPNEGO server endpoint during an authentication

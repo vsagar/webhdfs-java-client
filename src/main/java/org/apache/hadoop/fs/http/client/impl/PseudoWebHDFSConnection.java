@@ -12,6 +12,7 @@ import java.util.Map;
 
 import org.apache.hadoop.fs.http.client.WebHDFSConnection;
 import org.apache.hadoop.fs.http.client.WebHDFSConnectionFactory;
+import org.apache.hadoop.fs.http.client.util.ResponseUtil;
 import org.apache.hadoop.fs.http.client.util.Streams;
 import org.apache.hadoop.fs.http.client.util.URLUtil;
 import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
@@ -54,7 +55,7 @@ APPEND (see FileSystem.append)
 DELETE (see FileSystem.delete)
 
  */
-public class PseudoWebHDFSConnection implements WebHDFSConnection {
+class PseudoWebHDFSConnection implements WebHDFSConnection {
 
 	protected static final Logger logger = LoggerFactory.getLogger(PseudoWebHDFSConnection.class);
 
@@ -65,10 +66,10 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	private Token token = new AuthenticatedURL.Token();
 	private AuthenticatedURL authenticatedURL = new AuthenticatedURL(new PseudoAuthenticator2(principal));
 
-	public PseudoWebHDFSConnection() {
+	PseudoWebHDFSConnection() {
 	}
 
-	public PseudoWebHDFSConnection(String httpfsUrl, String principal, String password) {
+	PseudoWebHDFSConnection(String httpfsUrl, String principal, String password) {
 		this.httpfsUrl = httpfsUrl;
 		this.principal = principal;
 		this.password = password;
@@ -97,53 +98,6 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 		}
 
 		return newToken;
-	}
-
-	/**
-	 * Report the result in JSON way
-	 * 
-	 * @param conn
-	 * @param input
-	 * @return
-	 * @throws IOException
-	 */
-	private static String result(HttpURLConnection conn, boolean input) throws IOException {
-		StringBuilder sb = readResult(conn, input);
-
-		Map<String, Object> result = new HashMap<String, Object>();
-		result.put("code", conn.getResponseCode());
-		result.put("mesg", conn.getResponseMessage());
-		result.put("type", conn.getContentType());
-		result.put("data", sb);
-		//
-		// Convert a Map into JSON string.
-		//
-		Gson gson = new Gson();
-		String json = gson.toJson(result);
-		logger.info("json = " + json);
-
-		//
-		// Convert JSON string back to Map.
-		//
-		// Type type = new TypeToken<Map<String, Object>>(){}.getType();
-		// Map<String, Object> map = gson.fromJson(json, type);
-		// for (String key : map.keySet()) {
-		// System.out.println("map.get = " + map.get(key));
-		// }
-
-		return json;
-	}
-
-	private static StringBuilder readResult(HttpURLConnection conn, boolean input) throws IOException {
-		if (input) {
-			try {
-				return Streams.toStringBuilder(conn.getInputStream());
-			}
-			catch(IOException e) {
-				return Streams.toStringBuilder(conn.getErrorStream());
-			}
-		}
-		return new StringBuilder();
 	}
 
 	public void ensureValidToken() {
@@ -180,10 +134,7 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/?op=GETHOMEDIRECTORY&user.name={0}", this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
-		conn.connect();
-		String resp = result(conn, true);
-		conn.disconnect();
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -230,11 +181,7 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=GETCONTENTSUMMARY&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("GET");
-		conn.connect();
-		String resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -253,11 +200,7 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=LISTSTATUS&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("GET");
-		conn.connect();
-		String resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 
@@ -278,11 +221,7 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=GETFILESTATUS&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("GET");
-		conn.connect();
-		String resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -297,17 +236,11 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws AuthenticationException
 	 */
 	public String getFileCheckSum(String path) throws MalformedURLException, IOException, AuthenticationException {
-		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=GETFILECHECKSUM&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
-
 		conn.setRequestMethod("GET");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/*
@@ -329,8 +262,7 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws IOException
 	 * @throws AuthenticationException
 	 */
-	public String create(String path, InputStream is) throws MalformedURLException, IOException,
-			AuthenticationException {
+	public String create(String path, InputStream is) throws MalformedURLException, IOException, AuthenticationException {
 		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=CREATE&user.name={1}", URLUtil.encodePath(path), this.principal);
@@ -340,10 +272,14 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 		conn.setRequestMethod("PUT");
 		conn.setInstanceFollowRedirects(false);
 		conn.connect();
-		logger.info("Location:" + conn.getHeaderField("Location"));
+
 		resp = result(conn, true);
-		if (conn.getResponseCode() == 307)
+
+		if (conn.getResponseCode() == 307) {
+			logger.info("Redirecting to => " + conn.getHeaderField("Location"));
 			redirectUrl = conn.getHeaderField("Location");
+		}
+
 		conn.disconnect();
 
 		if (redirectUrl != null) {
@@ -381,16 +317,11 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws MalformedURLException
 	 */
 	public String mkdirs(String path) throws MalformedURLException, IOException, AuthenticationException {
-		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=MKDIRS&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("PUT");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -405,19 +336,13 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws IOException
 	 * @throws MalformedURLException
 	 */
-	public String createSymLink(String srcPath, String destPath) throws MalformedURLException, IOException,
-			AuthenticationException {
-		String resp = null;
+	public String createSymLink(String srcPath, String destPath) throws MalformedURLException, IOException, AuthenticationException {
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=CREATESYMLINK&destination={1}&user.name={2}",
 				URLUtil.encodePath(srcPath), URLUtil.encodePath(destPath), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("PUT");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -432,19 +357,13 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws IOException
 	 * @throws MalformedURLException
 	 */
-	public String rename(String srcPath, String destPath) throws MalformedURLException, IOException,
-			AuthenticationException {
-		String resp = null;
+	public String rename(String srcPath, String destPath) throws MalformedURLException, IOException, AuthenticationException {
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=RENAME&destination={1}&user.name={2}",
 				URLUtil.encodePath(srcPath), URLUtil.encodePath(destPath), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("PUT");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -460,16 +379,11 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws MalformedURLException
 	 */
 	public String setPermission(String path) throws MalformedURLException, IOException, AuthenticationException {
-		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=SETPERMISSION&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("PUT");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -485,16 +399,11 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws MalformedURLException
 	 */
 	public String setOwner(String path) throws MalformedURLException, IOException, AuthenticationException {
-		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=SETOWNER&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("PUT");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -510,16 +419,11 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws MalformedURLException
 	 */
 	public String setReplication(String path) throws MalformedURLException, IOException, AuthenticationException {
-		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=SETREPLICATION&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("PUT");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/**
@@ -535,16 +439,11 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws MalformedURLException
 	 */
 	public String setTimes(String path) throws MalformedURLException, IOException, AuthenticationException {
-		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=SETTIMES&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("PUT");
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	/*
@@ -563,8 +462,7 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws IOException
 	 * @throws AuthenticationException
 	 */
-	public String append(String path, InputStream is) throws MalformedURLException, IOException,
-			AuthenticationException {
+	public String append(String path, InputStream is) throws MalformedURLException, IOException, AuthenticationException {
 		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=APPEND&user.name={1}", URLUtil.encodePath(path), this.principal);
@@ -572,12 +470,19 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("POST");
 		conn.setInstanceFollowRedirects(false);
-		conn.connect();
-		logger.info("Location:" + conn.getHeaderField("Location"));
-		resp = result(conn, true);
-		if (conn.getResponseCode() == 307)
-			redirectUrl = conn.getHeaderField("Location");
-		conn.disconnect();
+		
+		try {
+			conn.connect();
+			resp = result(conn, true);
+	
+			if (conn.getResponseCode() == 307) {
+				logger.info("Redirecting to => " + conn.getHeaderField("Location"));
+				redirectUrl = conn.getHeaderField("Location");
+			}
+		}
+		finally {
+			conn.disconnect();
+		}
 
 		if (redirectUrl != null) {
 			conn = authenticatedURL.openConnection(new URL(redirectUrl), token);
@@ -619,17 +524,12 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 	 * @throws MalformedURLException
 	 */
 	public String delete(String path) throws MalformedURLException, IOException, AuthenticationException {
-		String resp = null;
 		ensureValidToken();
 		String spec = MessageFormat.format("/webhdfs/v1/{0}?op=DELETE&user.name={1}", URLUtil.encodePath(path), this.principal);
 		HttpURLConnection conn = authenticatedURL.openConnection(createQualifiedUrl(spec), token);
 		conn.setRequestMethod("DELETE");
 		conn.setInstanceFollowRedirects(false);
-		conn.connect();
-		resp = result(conn, true);
-		conn.disconnect();
-
-		return resp;
+		return execute(conn);
 	}
 
 	// Begin Getter & Setter
@@ -659,11 +559,56 @@ public class PseudoWebHDFSConnection implements WebHDFSConnection {
 
 	// End Getter & Setter
 
+	protected String execute(HttpURLConnection conn) throws IOException {
+		try {
+			conn.connect();
+			return result(conn, true);
+		}
+		finally {
+			conn.disconnect();
+		}
+	}
+	
 	private URL createQualifiedUrl(String spec) throws MalformedURLException {
 		return createQualifiedUrl(httpfsUrl, spec);
 	}
 	
 	private static URL createQualifiedUrl(String baseUrl, String spec) throws MalformedURLException {
 		return new URL(new URL(baseUrl), spec);
+	}
+	
+	/*
+	 * Report the result in JSON way
+	 * 
+	 * @param conn
+	 * @param input
+	 * @return
+	 * @throws IOException
+	 */
+	private static String result(HttpURLConnection conn, boolean input) throws IOException {
+		String data = "";
+		
+		if (input) {
+			try {
+				data = Streams.toString(conn.getInputStream());
+			}
+			catch(IOException e) {
+				data = Streams.toString(conn.getErrorStream());
+			}
+		}
+
+		Map<String, Object> result = new HashMap<String, Object>();
+		result.put(ResponseUtil.CODE, conn.getResponseCode());
+		result.put(ResponseUtil.MESSAGE, conn.getResponseMessage());
+		result.put(ResponseUtil.TYPE, conn.getContentType());
+		result.put(ResponseUtil.CONTENT, data);
+		//
+		// Convert a Map into JSON string.
+		//
+		Gson gson = new Gson();
+		String json = gson.toJson(result);
+		logger.info("json = " + json);
+
+		return json;
 	}
 }

@@ -1,7 +1,6 @@
 package org.apache.hadoop.fs.http.client;
 
-import org.apache.hadoop.fs.http.client.impl.KerberosWebHDFSConnection;
-import org.apache.hadoop.fs.http.client.impl.PseudoWebHDFSConnection;
+import org.apache.hadoop.fs.http.client.impl.AuthenticationType;
 import org.apache.hadoop.fs.http.client.util.Assert;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,10 +17,10 @@ public class WebHDFSConnectionFactory {
 	public static final String DEFAULT_HOST = "localhost";
 
 	/** The default port */
-	public static final int DEFAULT_PORT = 50075;
+	public static final int DEFAULT_PORT = 14000;
 
 	/** The default username */
-	public static final String DEFAULT_USERNAME = "";
+	public static final String DEFAULT_USERNAME = System.getProperty("user.name");
 
 	/** The default password */
 	public static final String DEFAULT_PASSWORD = "";
@@ -29,23 +28,6 @@ public class WebHDFSConnectionFactory {
 	public static final String DEFAULT_PROTOCOL = "http://";
 	
 	public static final String DEFAULT_URL = DEFAULT_PROTOCOL + DEFAULT_HOST + ":" + DEFAULT_PORT;
-
-	public static enum AuthenticationType {
-		KERBEROS {
-			@Override
-			public WebHDFSConnection createConnection(String httpfsUrl, String username, String password) {
-				return new KerberosWebHDFSConnection(httpfsUrl, username, password);
-			}
-		},
-		PSEUDO {
-			@Override
-			public WebHDFSConnection createConnection(String httpfsUrl, String username, String password) {
-				return new PseudoWebHDFSConnection(httpfsUrl, username, password);
-			}
-		};
-		
-		public abstract WebHDFSConnection createConnection(String httpfsUrl, String username, String password);
-	}
 
 	private int port = DEFAULT_PORT;
 	private String host = DEFAULT_HOST;

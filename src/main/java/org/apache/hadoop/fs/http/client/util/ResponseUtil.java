@@ -21,6 +21,12 @@ import com.google.gson.Gson;
 import com.google.gson.reflect.TypeToken;
 
 public class ResponseUtil {
+
+	public static final String CODE = "code";
+	public static final String MESSAGE = "mesg";
+	public static final String TYPE = "type";
+	public static final String CONTENT = "data";
+	
 	/**
 	 * Unmarshals the JSON response as a {@link Map} with the following keys:
 	 * 

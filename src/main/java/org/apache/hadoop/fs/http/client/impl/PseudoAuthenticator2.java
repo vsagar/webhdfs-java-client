@@ -31,7 +31,7 @@ import org.apache.hadoop.security.authentication.client.PseudoAuthenticator;
  * The 'user.name' value is propagated using an additional query string
  * parameter {@link #USER_NAME} ('user.name').
  */
-public class PseudoAuthenticator2 implements Authenticator {
+class PseudoAuthenticator2 implements Authenticator {
 
 	/**
 	 * Name of the additional parameter that carries the 'user.name' value.
@@ -39,6 +39,8 @@ public class PseudoAuthenticator2 implements Authenticator {
 	public static final String USER_NAME = "user.name";
 
 	private static final String USER_NAME_EQ = USER_NAME + "=";
+	
+	private String username = null;
 
 	/**
 	 * Performs simple authentication against the specified URL.
@@ -62,18 +64,31 @@ public class PseudoAuthenticator2 implements Authenticator {
 	 *             if an authentication error occurred.
 	 */
 	@Override
-	public void authenticate(URL url, AuthenticatedURL.Token token)
-			throws IOException, AuthenticationException {
+	public void authenticate(URL url, AuthenticatedURL.Token token) throws IOException, AuthenticationException {
 		String strUrl = url.toString();
 		String paramSeparator = (strUrl.contains("?")) ? "&" : "?";
-		strUrl += paramSeparator + USER_NAME_EQ + getUserName();
-		url = new URL(strUrl);
+		url = new URL(String.format("%s%s%s%s", strUrl, paramSeparator, USER_NAME_EQ, getUsername()));
 		HttpURLConnection conn = (HttpURLConnection) url.openConnection();
 		conn.setRequestMethod("OPTIONS");
 		conn.connect();
 		AuthenticatedURL.extractToken(conn, token);
 	}
 
+	public PseudoAuthenticator2() {
+	}
+	
+	public PseudoAuthenticator2(String username) {
+		this.username = username;
+	}
+
+	public String getUsername() {
+		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
+	}
+	
 	/**
 	 * Returns the current user name.
 	 * <p/>
@@ -85,22 +100,4 @@ public class PseudoAuthenticator2 implements Authenticator {
 	protected String getUserName() {
 		return username != null ? username : System.getProperty("user.name");
 	}
-
-	private String username = null;
-
-	public PseudoAuthenticator2(String username) {
-		this.username = username;
-	}
-
-	public PseudoAuthenticator2() {
-	}
-
-	public String getUsername() {
-		return username;
-	}
-
-	public void setUsername(String username) {
-		this.username = username;
-	}
-
 }

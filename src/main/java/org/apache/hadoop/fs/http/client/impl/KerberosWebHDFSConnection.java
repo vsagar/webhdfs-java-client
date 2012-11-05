@@ -56,7 +56,7 @@ APPEND (see FileSystem.append)
 DELETE (see FileSystem.delete)
 
  */
-public class KerberosWebHDFSConnection implements WebHDFSConnection {
+class KerberosWebHDFSConnection implements WebHDFSConnection {
 
 	protected static final Logger logger = LoggerFactory.getLogger(KerberosWebHDFSConnection.class);
 

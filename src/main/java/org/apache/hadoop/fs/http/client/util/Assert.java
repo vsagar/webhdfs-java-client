@@ -15,6 +15,15 @@
 package org.apache.hadoop.fs.http.client.util;
 
 public class Assert {
+
+	/**
+	 * Asserts that the provided {@code property} is not null
+	 * 
+	 * @param property
+	 * 			the property to test
+	 * @param message
+	 * 			the {@link IllegalArgumentException} message
+	 */
 	public static void notNull(Object property, String message) {
 		if(property == null) {
 			throw new IllegalArgumentException(message);
