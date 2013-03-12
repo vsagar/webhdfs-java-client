@@ -39,7 +39,7 @@ public class KerberosWebHDFSConnectionTest {
 	
 	//@Test
 	public void open() throws MalformedURLException, IOException, AuthenticationException {
-		String path="user/zen/在TMSBG南京軟件部總結的資料.7z.001";
+		String path="user/vidya/在TMSBG南京軟件部總結的資料.7z.001";
 		FileOutputStream os = new  FileOutputStream(new File("/tmp/downloadfromhdfs.file"));
 		String json = conn.open(path, os);
 		System.out.println(json);
@@ -49,18 +49,16 @@ public class KerberosWebHDFSConnectionTest {
 	//@Test
 	public void create() throws MalformedURLException, IOException, AuthenticationException {
 		FileInputStream is = new FileInputStream(new File("/tmp/downloadfromhdfs.file"));
-		String path="user/zen/newupload.file"; 
+		String path="user/vidya/newupload.file"; 
 		String json = conn.create(path, is);
 		System.out.println(json);
 	}
 	
 	//@Test
 	public void delete() throws MalformedURLException, IOException, AuthenticationException {
-		String path="user/zen/bigfile.tar.gz-new"; 
+		String path="user/vidya/bigfile.tar.gz-new"; 
 		String json = conn.delete(path);
 		System.out.println(json);
 	}
-	
-	//TODO Test Other KerberosWebHDFSConnectionTest's Method
 
 }
