@@ -37,6 +37,7 @@ import org.apache.commons.codec.binary.Base64;
 import org.apache.hadoop.security.authentication.client.AuthenticatedURL;
 import org.apache.hadoop.security.authentication.client.AuthenticationException;
 import org.apache.hadoop.security.authentication.client.Authenticator;
+import org.apache.hadoop.security.authentication.client.ConnectionConfigurator;
 import org.apache.hadoop.security.authentication.client.KerberosAuthenticator;
 import org.apache.hadoop.security.authentication.client.PseudoAuthenticator;
 import org.apache.hadoop.security.authentication.util.KerberosUtil;
@@ -392,5 +393,11 @@ class KerberosAuthenticator2 implements Authenticator {
 
 		}
 
+	}
+
+	@Override
+	public void setConnectionConfigurator(ConnectionConfigurator arg0) {
+		// TODO Auto-generated method stub
+		
 	}
 }
